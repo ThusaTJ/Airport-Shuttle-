@@ -42,11 +42,14 @@
                             <svg class="translate-caret" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6,9 12,15 18,9"/></svg>
                         </button>
                         <div class="translate-dropdown" id="translateDropdown">
-                            <button class="lang-opt active" data-lang="EN" type="button">🇺🇸 English</button>
-                            <button class="lang-opt" data-lang="ES" type="button">🇪🇸 Español</button>
-                            <button class="lang-opt" data-lang="FR" type="button">🇫🇷 Français</button>
-                            <button class="lang-opt" data-lang="DE" type="button">🇩🇪 Deutsch</button>
+                            <button class="lang-opt active" data-lang="en" data-label="EN" type="button">🇺🇸 English</button>
+                            <button class="lang-opt"        data-lang="es" data-label="ES" type="button">🇪🇸 Español</button>
+                            <button class="lang-opt"        data-lang="fr" data-label="FR" type="button">🇫🇷 Français</button>
+                            <button class="lang-opt"        data-lang="de" data-label="DE" type="button">🇩🇪 Deutsch</button>
                         </div>
+        
+                        <!-- Google injects its hidden <select> here — do not remove -->
+                        <div id="google_translate_element" style="display:none; visibility:hidden;"></div>
                     </div>
                 </div>
             </div>

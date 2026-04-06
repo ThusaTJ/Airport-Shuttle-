@@ -15,6 +15,47 @@
     --nav-h:         72px;
 }
 
+/* ── RESET & BASE ───────────────────────────────────── */
+*,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; margin-top: 0 !important; }
+
+body {
+    font-family:'Barlow',sans-serif;
+    background:var(--white);
+    color:var(--navy-dark);
+    overflow-x:hidden;
+    padding-top: calc(var(--topbar-h) + var(--nav-h));
+    font-size:1.05rem;
+    top: 0 !important; position: static !important;
+}
+
+/* ══════════════════════════════════════════════════════
+   GOOGLE TRANSLATE — suppress toolbar (paste at bottom
+   of styles.css so rules load before the widget renders)
+══════════════════════════════════════════════════════ */
+
+/* Kill the floating iframe toolbar */
+.goog-te-banner-frame,
+.goog-te-banner-frame.skiptranslate,
+iframe.goog-te-banner-frame { display: none !important; }
+
+/* Kill the balloon tooltip */
+.goog-te-balloon-frame { display: none !important; }
+
+/* Kill the hover tooltip */
+#goog-gt-tt,
+.goog-tooltip,
+.goog-tooltip:hover { display: none !important; }
+
+/* Kill the top menu frame */
+.goog-te-menu-frame { display: none !important; }
+
+/* Hide Google's own gadget text / branding link */
+.goog-te-gadget { font-size: 0 !important; color: transparent !important; }
+.goog-te-gadget span,
+.goog-te-gadget a,
+.goog-logo-link { display: none !important; }
+
         /* ── PAGE HERO ─────────────────────────────── */
         .page-hero {
             position: relative;
@@ -2198,50 +2239,6 @@
             font-size: 1.6rem; text-transform: uppercase; color: var(--white); margin-bottom: .5rem;
         }
         .form-success p { font-size: .95rem; color: #c8d8e8; line-height: 1.7; }
-
-        /* ── WHY BOOK WITH US ──────────────── */
-        .why-book-section {
-            background: var(--off-white);
-            padding: 100px 2.5rem;
-        }
-        .why-book-inner { max-width: 1200px; margin: 0 auto; }
-        .why-book-header { text-align: center; margin-bottom: 3.5rem; }
-        .why-book-header .section-label {
-            display: inline-flex; align-items: center; gap: 8px;
-            font-family: 'Barlow Condensed', sans-serif;
-            font-size: .78rem; letter-spacing: 3px; text-transform: uppercase;
-            color: var(--navy); font-weight: 700; margin-bottom: 1rem;
-        }
-        .why-book-header .section-label::before { content: ''; width: 24px; height: 2px; background: currentColor; }
-        .why-book-header h2 {
-            font-family: 'Barlow Condensed', sans-serif; font-weight: 800;
-            font-size: clamp(2rem, 4vw, 3.2rem); text-transform: uppercase;
-            color: var(--navy-dark); line-height: 1; letter-spacing: -.5px;
-        }
-        .why-book-grid {
-            display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem;
-        }
-        .why-book-card {
-            background: var(--white); border: 1.5px solid var(--border-light);
-            border-radius: 14px; padding: 2rem 1.5rem; text-align: center;
-            transition: transform .35s, box-shadow .35s, border-color .3s;
-        }
-        .why-book-card:hover {
-            transform: translateY(-6px); border-color: var(--accent);
-            box-shadow: 0 16px 44px rgba(30,58,95,.1);
-        }
-        .why-book-icon {
-            width: 60px; height: 60px; background: var(--navy-dark);
-            border-radius: 14px; display: flex; align-items: center; justify-content: center;
-            font-size: 1.7rem; margin: 0 auto 1.2rem; transition: transform .3s;
-        }
-        .why-book-card:hover .why-book-icon { transform: scale(1.1) rotate(-6deg); }
-        .why-book-card h4 {
-            font-family: 'Barlow Condensed', sans-serif; font-size: 1.05rem;
-            font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
-            color: var(--navy-dark); margin-bottom: .5rem;
-        }
-        .why-book-card p { font-size: .88rem; color: var(--text-body); line-height: 1.65; }
 
         /* ── MAP SECTION ───────────────────── */
         .map-section {

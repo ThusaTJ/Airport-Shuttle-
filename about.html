@@ -335,6 +335,50 @@
         });
     </script>
 
+    <script>
+        (function(){
+        /* Remove any existing Google toolbar iframes immediately */
+        function killGoogleBar(){
+            document.querySelectorAll(
+            '.goog-te-banner-frame, iframe.goog-te-banner-frame, .skiptranslate iframe'
+            ).forEach(function(el){ el.style.display='none'; });
+            /* Also undo Google's body position shift */
+            document.body.style.top      = '0';
+            document.body.style.position = '';
+            document.documentElement.style.marginTop = '0';
+        }
+        
+        /* Watch for Google injecting the toolbar after load */
+        var obs = new MutationObserver(function(mutations){
+            mutations.forEach(function(m){
+            m.addedNodes.forEach(function(node){
+                if(node.nodeType===1 && (
+                node.classList&&(
+                    node.classList.contains('goog-te-banner-frame')||
+                    node.classList.contains('skiptranslate')
+                )
+                )){ node.style.display='none'; }
+            });
+            });
+            killGoogleBar();
+        });
+        
+        function startObserver(){
+            killGoogleBar();
+            obs.observe(document.documentElement,{childList:true,subtree:true});
+            /* Belt-and-suspenders: also check every 300 ms for 5 s after load */
+            var t=0;
+            var iv=setInterval(function(){ killGoogleBar(); if(++t>16) clearInterval(iv); },300);
+        }
+        
+        if(document.readyState==='loading'){
+            document.addEventListener('DOMContentLoaded',startObserver);
+        } else {
+            startObserver();
+        }
+        })();
+    </script>
+
     <button class="scroll-top" id="scrollTop" aria-label="Back to top" type="button">↑</button>
     <script src="js/script.js"></script>
 </body>

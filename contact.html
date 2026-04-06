@@ -385,38 +385,6 @@
         </div>
     </section>
 
-    <!-- ── WHY BOOK WITH US ───────────────────────────── -->
-    <section class="why-book-section">
-        <div class="why-book-inner">
-            <div class="why-book-header">
-                <div class="section-label">Why Choose Us</div>
-                <h2>Paris's Most Trusted<br/>Private Airport Transfer</h2>
-            </div>
-            <div class="why-book-grid">
-                <div class="why-book-card scroll-reveal stagger-1">
-                    <div class="why-book-icon">💶</div>
-                    <h4>Cheapest Fixed Rates</h4>
-                    <p>Our airport transfer prices are fixed from the moment you book. No surge pricing, no hidden fees — the cheapest private airport taxi in Paris.</p>
-                </div>
-                <div class="why-book-card scroll-reveal stagger-2">
-                    <div class="why-book-icon">✈️</div>
-                    <h4>Free Flight Tracking</h4>
-                    <p>We monitor every flight in real time. If your transfer arrives early or late, your driver adjusts automatically — at no extra charge.</p>
-                </div>
-                <div class="why-book-card scroll-reveal stagger-3">
-                    <div class="why-book-icon">📍</div>
-                    <h4>Meet &amp; Greet Included</h4>
-                    <p>Your driver will be waiting at arrivals with a name board. You'll receive their photo and contact details before you land.</p>
-                </div>
-                <div class="why-book-card scroll-reveal stagger-4">
-                    <div class="why-book-icon">🚐</div>
-                    <h4>All Group Sizes</h4>
-                    <p>From a solo taxi to a 14-seat airport Vehicle — our fleet covers every group size for Disneyland transfers, corporate runs, and more.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
     <!-- ── COVERAGE MAP ───────────────────────────────── -->
     <section class="map-section">
         <div class="map-inner">
@@ -635,6 +603,50 @@
         const scrollTopBtn = document.getElementById('scrollTop');
         window.addEventListener('scroll', () => scrollTopBtn.classList.toggle('visible', window.scrollY > 400));
         scrollTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+    </script>
+
+    <script>
+        (function(){
+        /* Remove any existing Google toolbar iframes immediately */
+        function killGoogleBar(){
+            document.querySelectorAll(
+            '.goog-te-banner-frame, iframe.goog-te-banner-frame, .skiptranslate iframe'
+            ).forEach(function(el){ el.style.display='none'; });
+            /* Also undo Google's body position shift */
+            document.body.style.top      = '0';
+            document.body.style.position = '';
+            document.documentElement.style.marginTop = '0';
+        }
+        
+        /* Watch for Google injecting the toolbar after load */
+        var obs = new MutationObserver(function(mutations){
+            mutations.forEach(function(m){
+            m.addedNodes.forEach(function(node){
+                if(node.nodeType===1 && (
+                node.classList&&(
+                    node.classList.contains('goog-te-banner-frame')||
+                    node.classList.contains('skiptranslate')
+                )
+                )){ node.style.display='none'; }
+            });
+            });
+            killGoogleBar();
+        });
+        
+        function startObserver(){
+            killGoogleBar();
+            obs.observe(document.documentElement,{childList:true,subtree:true});
+            /* Belt-and-suspenders: also check every 300 ms for 5 s after load */
+            var t=0;
+            var iv=setInterval(function(){ killGoogleBar(); if(++t>16) clearInterval(iv); },300);
+        }
+        
+        if(document.readyState==='loading'){
+            document.addEventListener('DOMContentLoaded',startObserver);
+        } else {
+            startObserver();
+        }
+        })();
     </script>
 
     <script src="js/script.js"></script>

@@ -1,9 +1,77 @@
 /* ═══════════════════════════════════════════════════════
-   AIRPORT SHUTTLE — script.js (Merged)
-   Handles all page interactions + navbar/footer logic
+   AIRPORT SHUTTLE — script.js
+   All page interactions + Google Translate (merged, no duplicates)
 ════════════════════════════════════════════════════════ */
 
 'use strict';
+
+
+/* ──────────────────────────────────────────────────────
+   GOOGLE TRANSLATE — load widget + helpers
+   Defined first so initTranslate() can call them.
+────────────────────────────────────────────────────── */
+
+/* Boot the Google Translate element once the script loads */
+window.googleTranslateElementInit = function () {
+    new google.translate.TranslateElement(
+        { pageLanguage: 'en', autoDisplay: false, includedLanguages: 'en,es,fr,de' },
+        'google_translate_element'
+    );
+};
+
+/* Load Google's script once per page */
+(function loadGT() {
+    if (document.getElementById('gt-script')) return;
+    const s  = document.createElement('script');
+    s.id     = 'gt-script';
+    s.async  = true;
+    s.src    = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+    document.head.appendChild(s);
+})();
+
+/* Fire Google's hidden <select> — polls until widget is ready */
+function doTranslate(lang) {
+    let tries = 0;
+    const t = setInterval(() => {
+        tries++;
+        const sel = document.querySelector('.goog-te-combo');
+        if (sel) {
+            clearInterval(t);
+            sel.value = lang;
+            sel.dispatchEvent(new Event('change', { bubbles: true }));
+            sel.dispatchEvent(new Event('input',  { bubbles: true }));
+        }
+        if (tries > 50) clearInterval(t);
+    }, 100);
+}
+
+/* Clear Google cookie and reload to restore English */
+function resetToEnglish() {
+    ['', '.' + location.hostname].forEach(d => {
+        document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${d};`;
+    });
+    localStorage.removeItem('gbvp_lang');
+    localStorage.removeItem('gbvp_lang_label');
+    location.replace(location.href.replace(/#googtrans\([^)]*\)/g, ''));
+}
+
+/* On page load: restore the language the user previously picked */
+function restoreLang() {
+    const lang  = localStorage.getItem('gbvp_lang');
+    const label = localStorage.getItem('gbvp_lang_label');
+    if (!lang || lang === 'en') return;
+
+    const el = document.getElementById('currentLang');
+    if (el) el.textContent = label || lang.toUpperCase();
+
+    document.querySelectorAll('.lang-opt').forEach(b => {
+        b.classList.toggle('active', b.dataset.lang === lang);
+    });
+
+    /* Wait for Google widget to finish initialising before triggering */
+    setTimeout(() => doTranslate(lang), 900);
+}
+
 
 /* ──────────────────────────────────────────────────────
    1. NAVBAR & TOPBAR BEHAVIOUR
@@ -16,20 +84,17 @@ function initNav() {
     const translateWrap = document.getElementById('translateWrap');
     const scrollTopBtn = document.getElementById('scrollTop');
     if (!topbar || !mainNav || !hamburger || !navLinks) return;
+
     if (mainNav.dataset.navInitialized === 'true') {
-        const page = window.location.pathname.split('/').pop() || 'index.html';
-        document.querySelectorAll('.nav-link[href]').forEach(a => {
-            const href = a.getAttribute('href').split('#')[0];
-            a.classList.toggle('active', href === page);
-        });
+        updateActiveLink();
         return;
     }
     mainNav.dataset.navInitialized = 'true';
+
     const mobileNavQuery = window.matchMedia('(max-width: 1150px)');
-    let lastScrollY    = window.scrollY;
+    let lastScrollY = window.scrollY;
 
     function resetNavMenu() {
-        if (!navLinks || !hamburger) return;
         navLinks.classList.remove('open');
         hamburger.querySelectorAll('span').forEach(s => {
             s.style.transform = '';
@@ -38,22 +103,19 @@ function initNav() {
         document.body.style.overflow = '';
     }
 
-    /* ── Scroll: topbar hide + nav shadow + scroll-to-top ── */
     function handleScroll() {
         const sy = window.scrollY;
 
-        if (topbar) {
-            if (sy > 60 && sy > lastScrollY) {
-                topbar.classList.add('hidden');
-                translateWrap && translateWrap.classList.remove('open');
-                mainNav && mainNav.classList.add('topbar-hidden');
-            } else {
-                topbar.classList.remove('hidden');
-                mainNav && mainNav.classList.remove('topbar-hidden');
-            }
+        if (sy > 60 && sy > lastScrollY) {
+            topbar.classList.add('hidden');
+            translateWrap && translateWrap.classList.remove('open');
+            mainNav.classList.add('topbar-hidden');
+        } else {
+            topbar.classList.remove('hidden');
+            mainNav.classList.remove('topbar-hidden');
         }
 
-        if (mainNav) mainNav.classList.toggle('scrolled', sy > 20);
+        mainNav.classList.toggle('scrolled', sy > 20);
         if (scrollTopBtn) scrollTopBtn.classList.toggle('visible', sy > 400);
 
         lastScrollY = sy;
@@ -62,7 +124,6 @@ function initNav() {
 
     window.addEventListener('scroll', handleScroll, { passive: true });
 
-    /* ── Active link spy ── */
     function updateActiveLink() {
         const page = window.location.pathname.split('/').pop() || 'index.html';
         document.querySelectorAll('.nav-link[href]').forEach(a => {
@@ -72,114 +133,107 @@ function initNav() {
     }
     updateActiveLink();
 
-    /* ── Hamburger toggle ── */
-    if (hamburger && navLinks) {
-        hamburger.addEventListener('click', function (e) {
-            e.stopPropagation();
-            const isOpen = navLinks.classList.toggle('open');
-            const spans  = hamburger.querySelectorAll('span');
-            document.body.style.overflow = isOpen ? 'hidden' : '';
-            if (isOpen) {
-                spans[0].style.transform = 'rotate(45deg) translate(5px,5px)';
-                spans[1].style.opacity   = '0';
-                spans[2].style.transform = 'rotate(-45deg) translate(5px,-5px)';
-            } else {
-                spans.forEach(s => { s.style.transform = ''; s.style.opacity = ''; });
-            }
-        });
-
-        /* Close when a link is clicked */
-        navLinks.querySelectorAll('a').forEach(a => {
-            a.addEventListener('click', resetNavMenu);
-        });
-
-        /* Close when clicking outside */
-        document.addEventListener('click', function (e) {
-            if (!navLinks.contains(e.target) && !hamburger.contains(e.target)) {
-                resetNavMenu();
-            }
-        });
-
-        /* Mobile dropdown toggles */
-        document.querySelectorAll('.nav-has-drop > .nav-link').forEach(link => {
-            link.addEventListener('click', function (e) {
-                if (mobileNavQuery.matches) {
-                    e.preventDefault();
-                    link.closest('.nav-has-drop').classList.toggle('drop-open');
-                }
-            });
-        });
-
-        const handleNavBreakpointChange = (event) => {
-            if (!event.matches) resetNavMenu();
-        };
-
-        if (typeof mobileNavQuery.addEventListener === 'function') {
-            mobileNavQuery.addEventListener('change', handleNavBreakpointChange);
+    /* Hamburger */
+    hamburger.addEventListener('click', function (e) {
+        e.stopPropagation();
+        const isOpen = navLinks.classList.toggle('open');
+        const spans  = hamburger.querySelectorAll('span');
+        document.body.style.overflow = isOpen ? 'hidden' : '';
+        if (isOpen) {
+            spans[0].style.transform = 'rotate(45deg) translate(5px,5px)';
+            spans[1].style.opacity   = '0';
+            spans[2].style.transform = 'rotate(-45deg) translate(5px,-5px)';
         } else {
-            window.addEventListener('resize', () => handleNavBreakpointChange(mobileNavQuery));
+            spans.forEach(s => { s.style.transform = ''; s.style.opacity = ''; });
         }
+    });
+
+    navLinks.querySelectorAll('a').forEach(a => a.addEventListener('click', resetNavMenu));
+
+    document.addEventListener('click', function (e) {
+        if (!navLinks.contains(e.target) && !hamburger.contains(e.target)) {
+            resetNavMenu();
+        }
+    });
+
+    document.querySelectorAll('.nav-has-drop > .nav-link').forEach(link => {
+        link.addEventListener('click', function (e) {
+            if (mobileNavQuery.matches) {
+                e.preventDefault();
+                link.closest('.nav-has-drop').classList.toggle('drop-open');
+            }
+        });
+    });
+
+    const onBreakpointChange = e => { if (!e.matches) resetNavMenu(); };
+    typeof mobileNavQuery.addEventListener === 'function'
+        ? mobileNavQuery.addEventListener('change', onBreakpointChange)
+        : window.addEventListener('resize', () => onBreakpointChange(mobileNavQuery));
+
+    if (scrollTopBtn) {
+        scrollTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
     }
 
-    /* ── Scroll to top ── */
-    if (scrollTopBtn) {
-        scrollTopBtn.addEventListener('click', () => {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        });
-    }
     handleScroll();
 }
 
 
 /* ──────────────────────────────────────────────────────
-   2. TRANSLATE WIDGET
+   2. TRANSLATE WIDGET  (unified — no duplicate listeners)
 ────────────────────────────────────────────────────── */
 function initTranslate() {
-    const translateBtn      = document.getElementById('translateBtn');
-    const translateWrap     = document.getElementById('translateWrap');
-    const currentLangEl     = document.getElementById('currentLang');
-    const langOpts          = document.querySelectorAll('.lang-opt');
+    const wrap  = document.getElementById('translateWrap');
+    const btn   = document.getElementById('translateBtn');
+    const dd    = document.getElementById('translateDropdown');
+    const label = document.getElementById('currentLang');
 
-    if (!translateBtn || !translateWrap) return;
-    if (translateWrap.dataset.translateInitialized === 'true') return;
-    translateWrap.dataset.translateInitialized = 'true';
+    if (!wrap || !btn || !dd) return;
+    if (wrap.dataset.translateInitialized === 'true') return;
+    wrap.dataset.translateInitialized = 'true';
 
-    /* Toggle on button click */
-    translateBtn.addEventListener('click', function (e) {
+    /* Toggle dropdown */
+    btn.addEventListener('click', function (e) {
         e.stopPropagation();
-        translateWrap.classList.toggle('open');
+        wrap.classList.toggle('open');
     });
 
     /* Close on outside click */
     document.addEventListener('click', function (e) {
-        if (!translateWrap.contains(e.target)) {
-            translateWrap.classList.remove('open');
-        }
+        if (!wrap.contains(e.target)) wrap.classList.remove('open');
     });
 
-    /* Language select */
-    langOpts.forEach(btn => {
-        btn.addEventListener('click', function () {
-            const lang = btn.dataset.lang;
-            if (currentLangEl) currentLangEl.textContent = lang;
-            langOpts.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            translateWrap.classList.remove('open');
+    /* Language pill clicks */
+    dd.querySelectorAll('.lang-opt').forEach(pill => {
+        pill.addEventListener('click', function () {
+            const lang  = pill.dataset.lang;          /* lowercase: 'en','es','fr','de' */
+            const lbl   = pill.dataset.label || lang.toUpperCase();
 
-            /* Hook into Google Translate if present */
-            try {
-                const gtCombo = document.querySelector('.goog-te-combo');
-                if (gtCombo) {
-                    const map = { EN:'en', ES:'es', FR:'fr', DE:'de', ZH:'zh-CN', AR:'ar', PT:'pt' };
-                    gtCombo.value = map[lang] || 'en';
-                    gtCombo.dispatchEvent(new Event('change'));
-                }
-            } catch (_) {}
+            dd.querySelectorAll('.lang-opt').forEach(p => p.classList.remove('active'));
+            pill.classList.add('active');
+            if (label) label.textContent = lbl;
+            wrap.classList.remove('open');
+
+            if (lang === 'en') {
+                resetToEnglish();
+            } else {
+                localStorage.setItem('gbvp_lang', lang);
+                localStorage.setItem('gbvp_lang_label', lbl);
+                doTranslate(lang);
+            }
         });
     });
+
+    /* Restore language chosen on a previous page */
+    restoreLang();
 }
 
-window.initializeSiteChrome = function initializeSiteChrome() {
+
+/* ──────────────────────────────────────────────────────
+   SITE CHROME ENTRY POINT
+   Called by each page after navbar.html + footer.html
+   are fetched and injected.
+────────────────────────────────────────────────────── */
+window.initializeSiteChrome = function () {
     initNav();
     initTranslate();
 };
@@ -195,13 +249,13 @@ function initParticles() {
         const p = document.createElement('div');
         p.className = 'particle';
         p.style.cssText = `
-            left:${Math.random()*100}%;
-            top:${Math.random()*100}%;
-            --dur:${6+Math.random()*10}s;
-            --delay:${Math.random()*8}s;
-            --dx:${(Math.random()-.5)*60}px;
-            width:${2+Math.random()*3}px;
-            height:${2+Math.random()*3}px;
+            left:${Math.random() * 100}%;
+            top:${Math.random() * 100}%;
+            --dur:${6 + Math.random() * 10}s;
+            --delay:${Math.random() * 8}s;
+            --dx:${(Math.random() - .5) * 60}px;
+            width:${2 + Math.random() * 3}px;
+            height:${2 + Math.random() * 3}px;
         `;
         container.appendChild(p);
     }
@@ -227,8 +281,8 @@ function initScrollReveal() {
    5. ANIMATED COUNTERS
 ────────────────────────────────────────────────────── */
 function animateCounter(el) {
-    const target    = parseInt(el.dataset.target, 10);
-    const suffix    = el.dataset.suffix || '';
+    const target     = parseInt(el.dataset.target, 10);
+    const suffix     = el.dataset.suffix || '';
     const totalSteps = 2000 / 16;
     let current = 0;
     const timer = setInterval(() => {
@@ -244,7 +298,9 @@ function initCounters() {
     const counters = document.querySelectorAll('.counter');
     if (!counters.length) return;
     const io = new IntersectionObserver((entries) => {
-        entries.forEach(e => { if (e.isIntersecting) { animateCounter(e.target); io.unobserve(e.target); } });
+        entries.forEach(e => {
+            if (e.isIntersecting) { animateCounter(e.target); io.unobserve(e.target); }
+        });
     }, { threshold: 0.5 });
     counters.forEach(c => io.observe(c));
 }
@@ -270,7 +326,7 @@ function initFAQ() {
     const faqList = document.getElementById('faqList');
     if (!faqList) return;
 
-    const closeAllItems = () => {
+    const closeAll = () => {
         faqList.querySelectorAll('.faq-item').forEach(i => {
             const panel = i.querySelector('.faq-a');
             i.classList.remove('open');
@@ -284,7 +340,7 @@ function initFAQ() {
             const item   = btn.closest('.faq-item');
             const answer = item.querySelector('.faq-a');
             const isOpen = item.classList.contains('open');
-            closeAllItems();
+            closeAll();
             if (!isOpen) {
                 item.classList.add('open');
                 answer.classList.add('open');
@@ -294,14 +350,14 @@ function initFAQ() {
     });
 
     window.addEventListener('resize', () => {
-        const openAnswer = faqList.querySelector('.faq-item.open .faq-a');
-        if (openAnswer) openAnswer.style.maxHeight = `${openAnswer.scrollHeight}px`;
+        const open = faqList.querySelector('.faq-item.open .faq-a');
+        if (open) open.style.maxHeight = `${open.scrollHeight}px`;
     }, { passive: true });
 }
 
 
 /* ──────────────────────────────────────────────────────
-   8. QUOTE & CONTACT BUTTONS (mock feedback)
+   8. QUOTE & CONTACT BUTTONS
 ────────────────────────────────────────────────────── */
 function initButtons() {
     function flashBtn(btn, msg) {
@@ -312,7 +368,6 @@ function initButtons() {
         btn.style.color      = 'white';
         setTimeout(() => { btn.innerHTML = original; btn.style.background = ''; btn.style.color = ''; }, 3500);
     }
-
     const quoteBtn  = document.getElementById('quoteBtn');
     const submitBtn = document.getElementById('submitBtn');
     if (quoteBtn)  quoteBtn.addEventListener('click',  () => flashBtn(quoteBtn,  'Quote Sent to Your Email!'));
@@ -333,9 +388,9 @@ function initNewsletter() {
             setTimeout(() => fnInput.style.borderColor = '', 2000);
             return;
         }
-        fnBtn.textContent    = '✓ Subscribed!';
+        fnBtn.textContent      = '✓ Subscribed!';
         fnBtn.style.background = '#2ecc71';
-        fnInput.value = '';
+        fnInput.value          = '';
         setTimeout(() => { fnBtn.textContent = 'Subscribe'; fnBtn.style.background = ''; }, 3500);
     });
 }
@@ -352,8 +407,8 @@ function initPlanePath() {
     let t = 0;
     (function step() {
         t = (t + 0.3) % 100;
-        const pt  = path.getPointAtLength((t / 100) * pathLen);
-        const pt2 = path.getPointAtLength(((t + .5) / 100) * pathLen);
+        const pt    = path.getPointAtLength((t / 100) * pathLen);
+        const pt2   = path.getPointAtLength(((t + .5) / 100) * pathLen);
         const angle   = Math.atan2(pt2.y - pt.y, pt2.x - pt.x) * 180 / Math.PI;
         const opacity = t < 5 ? t / 5 : t > 90 ? (100 - t) / 10 : 0.5;
         plane.setAttribute('transform', `translate(${pt.x},${pt.y}) rotate(${angle})`);
@@ -364,9 +419,13 @@ function initPlanePath() {
 
 
 /* ──────────────────────────────────────────────────────
-   INIT
+   BOOT — runs on DOMContentLoaded
 ────────────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
+    /* initializeSiteChrome() is also called by each page's
+       fetch() promise after navbar/footer are injected —
+       the guard flags inside initNav() and initTranslate()
+       prevent any function from running twice. */
     window.initializeSiteChrome();
     initParticles();
     initScrollReveal();
